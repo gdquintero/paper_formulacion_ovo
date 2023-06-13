@@ -4,7 +4,7 @@ Program main
     implicit none 
     
     integer :: allocerr,samples
-    real(kind=8) :: fxk,fxtrial,ti,sigma
+    real(kind=8) :: fxk,fxtrial,ti,sigma,fovo
     real(kind=8), allocatable :: xtrial(:),faux(:),indices(:),nu_l(:),nu_u(:),opt_cond(:),&
                                  xstar(:),y(:),data(:,:),t(:)
     integer, allocatable :: Idelta(:),outliers(:)
@@ -22,20 +22,20 @@ Program main
     logical,        pointer :: equatn(:),linear(:)
     real(kind=8),   pointer :: lambda(:)
 
-    integer :: i
+    integer :: i,iterations
     real(kind=8), dimension(3,3) :: solutions
 
     ! Reading data and storing it in the variables t and y
-    Open(Unit = 100, File = "output/seropositives.txt", ACCESS = "SEQUENTIAL")
+    Open(Unit = 100, File = "output/data.txt", ACCESS = "SEQUENTIAL")
 
     ! Set parameters
     read(100,*) samples
 
-    n = 4
+    n = 5
 
-    allocate(t(samples),y(samples),x(n),xk(n-1),xtrial(n-1),l(n),u(n),xstar(n-1),data(5,samples),&
+    allocate(t(samples),y(samples),x(n),xk(n-1),xtrial(n-1),l(n),u(n),xstar(n-1),data(2,samples),&
     faux(samples),indices(samples),Idelta(samples),nu_l(n-1),nu_u(n-1),opt_cond(n-1),&
-    outliers(3*samples),stat=allocerr)
+    outliers(samples),stat=allocerr)
 
     if ( allocerr .ne. 0 ) then
         write(*,*) 'Allocation error in main program'
@@ -75,15 +75,17 @@ Program main
     nvparam   = 1
     vparam(1) = 'ITERATIONS-OUTPUT-DETAIL 0' 
 
-    l(1:n-1) = 0.0d0; l(n) = -1.0d+20
-    u(1:n-1) = 1.0d+20; u(n) = 0.0d0
+    l(1:n-1) = -10.0d0; l(n) = -1.0d+20
+    u(1:n-1) = 10.0d0; u(n) = 0.0d0
 
-
-    ! Number of days
     t(:) = data(1,:)
-    ! t(:) = data(5,:)
+    y(:) = data(2,:)
 
-    call mixed_test(1,4,outliers,t,y,indices,Idelta,samples,m,n,xtrial)
+    ! call mixed_test(1,10,outliers,t,y,indices,Idelta,samples,m,n,xtrial)
+
+    ! xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
+    
+    call mixed_test(1,15,outliers,t,y,indices,Idelta,samples,m,n,xtrial)
 
     CONTAINS
 
@@ -92,7 +94,7 @@ Program main
 
         integer,        intent(in) :: samples,n,out_inf,out_sup
         real(kind=8),   intent(in) :: t(samples)
-        integer,        intent(inout) :: Idelta(samples),outliers(3*samples),m
+        integer,        intent(inout) :: Idelta(samples),outliers(samples),m
         real(kind=8),   intent(inout) :: indices(samples),xtrial(n-1),y(samples)
 
         integer :: noutliers,q,iterations,i
@@ -102,8 +104,7 @@ Program main
         Print*, "OVO Algorithm for Measles"
         y(:) = data(2,:)
 
-        ! xk(:) = (/0.197d0,0.287d0,0.021d0/)
-        xk(:) = 1.0d-1
+        xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
 
         do noutliers = out_inf,out_sup
             q = samples - noutliers
@@ -112,77 +113,26 @@ Program main
 
             call ovo_algorithm(q,noutliers,t,y,indices,Idelta,samples,m,n,xtrial,outliers(1:noutliers),fovo,iterations)
 
-            Open(Unit = 100, File = "output/solutions_mixed_measles.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 300, File = "output/fobj_mixed_measles.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 400, File = "output/iterations_mixed_measles.txt", ACCESS = "SEQUENTIAL")
+            Open(Unit = 100, File = "output/solutions.txt", ACCESS = "SEQUENTIAL")
+            Open(Unit = 300, File = "output/fobj.txt", ACCESS = "SEQUENTIAL")
+            Open(Unit = 400, File = "output/iterations.txt", ACCESS = "SEQUENTIAL")
 
-            write(100,1000) xtrial(1), xtrial(2), xtrial(3)
+            write(100,1000) xtrial(1),xtrial(2),xtrial(3),xtrial(4)
             write(300,*) fovo
             write(400,*) iterations
             
-        enddo
-
-        print*
-        Print*, "OVO Algorithm for Mumps"
-        y(:) = data(3,:)
-
-        ! xk(:) = (/0.156d0,0.250d0,0.0d0/)
-        xk(:) = 1.0d-1
-
-        do noutliers = out_inf,out_sup
-            q = samples - noutliers
-            print*
-            write(*,1100) "Number of outliers: ",noutliers
-
-            call ovo_algorithm(q,noutliers,t,y,indices,Idelta,samples,m,n,xtrial,outliers(1:noutliers),fovo,iterations)
-
-            Open(Unit = 110, File = "output/solutions_mixed_mumps.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 310, File = "output/fobj_mixed_mumps.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 410, File = "output/iterations_mixed_mumps.txt", ACCESS = "SEQUENTIAL")
-
-            write(110,1000) xtrial(1), xtrial(2), xtrial(3)
-            write(310,*) fovo
-            write(410,*) iterations
-        enddo
-
-        print*
-        Print*, "OVO Algorithm for Rubella"
-        y(:) = data(4,:)
-
-        ! xk(:) = (/0.0628d0,0.178d0,0.020d0/)
-        xk(:) = 1.0d-1
-
-        do noutliers = out_inf,out_sup
-            q = samples - noutliers
-            print*
-            write(*,1100) "Number of outliers: ",noutliers
-
-            call ovo_algorithm(q,noutliers,t,y,indices,Idelta,samples,m,n,xtrial,outliers(1:noutliers),fovo,iterations)
-
-            Open(Unit = 120, File = "output/solutions_mixed_rubella.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 320, File = "output/fobj_mixed_rubella.txt", ACCESS = "SEQUENTIAL")
-            Open(Unit = 420, File = "output/iterations_mixed_rubella.txt", ACCESS = "SEQUENTIAL")
-
-            write(120,1000) xtrial(1), xtrial(2), xtrial(3)
-            write(320,*) fovo
-            write(420,*) iterations
-    
         enddo
 
         Open(Unit = 500, File = "output/num_mixed_test.txt", ACCESS = "SEQUENTIAL")
         write(500,1200) out_inf
         write(500,1200) out_sup
         
-        1000 format (ES12.6,1X,ES12.6,1X,ES12.6)
+        1000 format (ES12.6,1X,ES12.6,1X,ES12.6,1X,ES12.6)
         1100 format (1X,A20,I2)
         1200 format (I2)
 
         close(100)
-        close(110)
-        close(120)
         close(300)
-        close(310)
-        close(320)
         close(500)
         
     end subroutine mixed_test
@@ -201,15 +151,15 @@ Program main
 
         integer, parameter  :: max_iter = 1000, max_iter_sub = 100, kflag = 2
         integer             :: iter,iter_sub,i,j
-        real(kind=8)        :: gaux1,gaux2,a,b,c,ebt,terminate,alpha,epsilon,delta,sigmin,gamma
+        real(kind=8)        :: gaux,terminate,alpha,epsilon,delta,sigmin,gamma
 
         alpha   = 0.5d0
-        epsilon = 1.0d-3
-        delta   = 1.0d-4
-        sigmin  = 1.0d0
+        epsilon = 1.0d-6
+        delta   = 1.0d-3
+        sigmin  = 1.0d+1
         gamma   = 2.0d0
         iter    = 0
-        ! xk(:)   = 0.1d0
+
         indices(:) = (/(i, i = 1, samples)/)
     
         ! Scenarios
@@ -246,32 +196,19 @@ Program main
             linear(:) = .false.
             lambda(:) = 0.0d0
     
-            a = xk(1)
-            b = xk(2)
-            c = xk(3)
-    
             do i = 1, m
                 ti = t(Idelta(i))
 
-                ebt = exp(-b * ti)
+                call model(xk,Idelta(i),n,t,samples,gaux)
 
-                call model(xk,Idelta(i),n,t,samples,gaux1)
-
-                gaux1 = y(Idelta(i)) - gaux1
-
-                gaux2 = exp((a / b) * ti * ebt + (1.0d0 / b) * ((a / b) - c) * (ebt - 1.0d0) - c * ti)
+                gaux = gaux - y(Idelta(i))
     
-                grad(i,1) = (1.0d0 / b**2) * (ebt * (ti * b + 1.0d0) - 1.0d0)
+                grad(i,1) = 1.0d0
+                grad(i,2) = ti
+                grad(i,3) = ti**2
+                grad(i,4) = ti**3
     
-                grad(i,2) = (1.0d0 / b**2) * (c - a/b) * (ebt - 1.0d0)
-                grad(i,2) = grad(i,2) - (1.0d0 / b**3) * (a * (ebt - 1.0d0))
-                grad(i,2) = grad(i,2) + (1.0d0 / b) * ti * ebt * (c - a/b)
-                grad(i,2) = grad(i,2) - (1.0d0 / b**2) * (a * ti * ebt)
-                grad(i,2) = grad(i,2) - (1.0d0 / b) * (a * (ti**2) * ebt)
-    
-                grad(i,3) = (1.0d0 / b) * (1.0d0 - ebt) - ti
-    
-                grad(i,:) = gaux1 * gaux2 * grad(i,:)
+                grad(i,:) = gaux * grad(i,:)
             end do
     
             sigma = sigmin
@@ -279,7 +216,7 @@ Program main
             x(:) = (/xk(:),0.0d0/)
     
             ! Minimizing using ALGENCAN
-            do 
+            do  
                 call algencan(myevalf,myevalg,myevalh,myevalc,myevaljac,myevalhc,   &
                     myevalfc,myevalgjac,myevalgjacp,myevalhl,myevalhlp,jcnnzmax,    &
                     hnnzmax,epsfeas,epsopt,efstain,eostain,efacc,eoacc,outputfnm,   &
@@ -287,6 +224,7 @@ Program main
                     checkder,f,cnorm,snorm,nlpsupn,inform)
 
                 xtrial(1:n-1) = x(1:n-1)
+
                 indices(:) = (/(i, i = 1, samples)/)
     
                 ! Scenarios
@@ -414,14 +352,14 @@ Program main
     !==============================================================================
     ! QUADRATIC ERROR OF EACH SCENARIO
     !==============================================================================
-    subroutine fi(x,i,n,t,y,samples,res)
+    subroutine fi(xx,i,n,t,y,samples,res)
         implicit none
 
         integer,        intent(in) :: n,i,samples
-        real(kind=8),   intent(in) :: x(n-1),t(samples),y(samples)
+        real(kind=8),   intent(in) :: xx(n-1),t(samples),y(samples)
         real(kind=8),   intent(out) :: res
         
-        call model(x,i,n,t,samples,res)
+        call model(xx,i,n,t,samples,res)
         res = res - y(i)
         res = 0.5d0 * (res**2)
 
@@ -430,14 +368,15 @@ Program main
     !==============================================================================
     ! MODEL TO BE FITTED TO THE DATA
     !==============================================================================
-    subroutine model(x,i,n,t,samples,res)
+    subroutine model(xx,i,n,t,samples,res)
         implicit none 
 
         integer,        intent(in) :: n,i,samples
-        real(kind=8),   intent(in) :: x(n-1),t(samples)
+        real(kind=8),   intent(in) :: xx(n-1),t(samples)
         real(kind=8),   intent(out) :: res
+        integer :: k
 
-        res = x(1) + x(2)*t(i) + x(3)*(t(i)**2) + x(4)*(t(i)**3)
+        res = dot_product(xx,(/(t(i)**k,k=0,3)/))
 
     end subroutine model
 
