@@ -85,7 +85,7 @@ Program main
 
     ! xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
     
-    call mixed_test(1,15,outliers,t,y,indices,Idelta,samples,m,n,xtrial)
+    call mixed_test(1,10,outliers,t,y,indices,Idelta,samples,m,n,xtrial)
 
     CONTAINS
 
@@ -101,15 +101,17 @@ Program main
         real(kind=8) :: fovo
 
         print*
-        Print*, "OVO Algorithm for Measles"
+        Print*, "OVO Algorithm"
         y(:) = data(2,:)
 
-        xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
+        ! xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
 
         do noutliers = out_inf,out_sup
             q = samples - noutliers
             print*
             write(*,1100) "Number of outliers: ",noutliers
+
+            xk(:) = (/-1.0d0,-2.0d0,1.0d0,-1.0d0/)
 
             call ovo_algorithm(q,noutliers,t,y,indices,Idelta,samples,m,n,xtrial,outliers(1:noutliers),fovo,iterations)
 
@@ -127,7 +129,7 @@ Program main
         write(500,1200) out_inf
         write(500,1200) out_sup
         
-        1000 format (ES12.6,1X,ES12.6,1X,ES12.6,1X,ES12.6)
+        1000 format (ES13.6,1X,ES13.6,1X,ES13.6,1X,ES13.6)
         1100 format (1X,A20,I2)
         1200 format (I2)
 
@@ -154,9 +156,9 @@ Program main
         real(kind=8)        :: gaux,terminate,alpha,epsilon,delta,sigmin,gamma
 
         alpha   = 0.5d0
-        epsilon = 1.0d-6
-        delta   = 1.0d-3
-        sigmin  = 1.0d+1
+        epsilon = 1.0d-3
+        delta   = 1.0d-4
+        sigmin  = 1.0d0
         gamma   = 2.0d0
         iter    = 0
 

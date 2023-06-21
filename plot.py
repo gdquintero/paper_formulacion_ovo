@@ -1,62 +1,35 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import models
 
-# 'ro',mfc='none',ms=10)
+model = lambda t,x1,x2,x3,x4 : x1 + x2*t + x3*(t**2) + x4*(t**3)
 
-def plot_solutions(ind,df_seropositives,df_sol,sero_outliers,noutliers):
-    t = np.linspace(0,70,1000)
-    disease = ["Measles","Mumps","Rubella"]
-    plt.plot(df_seropositives[0].values,df_seropositives[ind].values,"o")
-    plt.plot(t,models.F(t,*df_sol.iloc[ind-1].values),label="OVO")
-    plt.plot(sero_outliers[0],sero_outliers[1],'ro',mfc='none',ms=10)
+xstar = np.array([0,2,-3,1])
 
-    for i in range(noutliers):
-        point1 = [sero_outliers[0,i],models.F(sero_outliers[0,i],*df_sol.iloc[ind-1].values)]
-        point2 = [sero_outliers[0,i],sero_outliers[1,i]]
-        x_values = [point1[0], point2[0]]
-        y_values = [point1[1], point2[1]]
-        plt.plot(x_values, y_values, 'k', linestyle="--")
+t = np.linspace(-1.1,3.6,1000)
 
-    plt.legend()
-    plt.title(disease[ind-1])
-    plt.show()
+# df_solutions =  pd.read_table("output/solutions.txt",delimiter=" ",header=None,skiprows=0)
+df_data = pd.read_table("output/data.txt",delimiter=" ",header=None,skiprows=1)
 
-df_seropositives = pd.read_table("output/seropositives.txt",delimiter=" ",header=None,skiprows=1)
-df_mixed_measles = pd.read_table("output/solutions_mixed_measles.txt",delimiter=" ",header=None,skiprows=0)
-df_mixed_mumps   = pd.read_table("output/solutions_mixed_mumps.txt",delimiter=" ",header=None,skiprows=0)
-df_mixed_rubella = pd.read_table("output/solutions_mixed_rubella.txt",delimiter=" ",header=None,skiprows=0)
-
-with open("output/outliers.txt") as f:
+with open("output/solutions.txt") as f:
     lines = f.readlines()
-    xdata = [line.split()[0] for line in lines]
+    solutions = [line.split()[:] for line in lines]
 
-noutliers = int(xdata[0])
+with open("output/num_mixed_test.txt") as f:
+    lines = f.readlines()
+    lim = [line.split()[0] for line in lines]
 
-outliers = np.empty(3*noutliers,dtype=int)
 
-for i in range(3*noutliers):
-    outliers[i] = int(xdata[i+1])
+inf = int(lim[0])
+sup = int(lim[1])
+n = sup - inf + 1
 
-measles_outliers = np.empty((2,noutliers))
-mumps_outliers   = np.empty((2,noutliers))
-rubella_outliers = np.empty((2,noutliers))
+plt.plot(df_data[0].values,df_data[1].values,"ko")
 
-for i in range(noutliers):
-    measles_outliers[0,i] = df_seropositives[0].values[outliers[i]-1]
-    measles_outliers[1,i] = df_seropositives[1].values[outliers[i]-1]
+for i in range(n):
+    plt.plot(t,model(t,float(solutions[i][0]),float(solutions[i][1]),float(solutions[i][2]),\
+                     float(solutions[i][3])),label="Outliers: "+str(inf+i))
+    plt.legend()
+    
 
-    mumps_outliers[0,i] = df_seropositives[0].values[outliers[noutliers+i]-1]
-    mumps_outliers[1,i] = df_seropositives[2].values[outliers[noutliers+i]-1]
-
-    rubella_outliers[0,i] = df_seropositives[0].values[outliers[2*noutliers+i]-1]
-    rubella_outliers[1,i] = df_seropositives[3].values[outliers[2*noutliers+i]-1]
-
-print(df_mixed_measles)
-
-# Plotamos las soluciones 1:Measles, 2:Mumps, 3:Rubella
-# plot_solutions(1,df_seropositives,df_mixed_measles,measles_outliers,noutliers)
-# plot_solutions(2,df_seropositives,df_solutions_ovo,df_solutions_ls,mumps_outliers,noutliers)
-# plot_solutions(3,df_seropositives,df_solutions_ovo,df_solutions_ls,rubella_outliers,noutliers)
-
+plt.show()
